@@ -1,0 +1,9 @@
+{
+  "object": "Account",
+  "methods":{
+    "signUp": {
+      "request_method": "POST",
+      "params": ["email", "username", "password", "password"]
+    }
+  }
+}

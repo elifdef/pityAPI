@@ -1,7 +1,8 @@
 {
     "autoload": {
         "psr-4": {
-            "API\\": "src/"
+            "API\\": "src/",
+            "API\\Router\\": "src/Router/"
         }
     },
     "require": {
