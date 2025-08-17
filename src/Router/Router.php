@@ -1,6 +1,9 @@
 <?php
 
 namespace API\Router;
+
+use API\Exception\{BackendError, InvalidRoute};
+use TypeError;
 class Router implements RouterInterface
 {
     private string $URI;
@@ -9,12 +12,38 @@ class Router implements RouterInterface
     private string $methodURI;
     private array $registeredMethods = [];
 
-    public function dispatch(string $requestURI, string $requestMethod)
+    public function dispatch(string $requestURI, string $requestMethod): void
     {
         // TODO: Implement dispatch() method.
-        $this->URI = $requestURI;
-        $this->requestMethod = $requestMethod;
-        [$this->objectURI, $this->methodURI] = $this->splitURI();
+        try
+        {
+            $this->URI = $requestURI;
+            $this->requestMethod = $requestMethod;
+            [$this->objectURI, $this->methodURI] = $this->splitURI();
+            [$jsonResponse, $httpCode] = $this->route();
+            http_response_code($httpCode);
+            echo $jsonResponse;
+        } catch (InvalidRoute $exception)
+        {
+            http_response_code($exception->getHttpCode());
+            echo json_encode(
+                [
+                    "error" => [
+                        "code" => $exception->getCode(),
+                        "message" => $exception->getMessage()
+                    ]
+                ]
+            );
+        } catch (BackendError|TypeError $exception)
+        {
+            if (method_exists(get_class($exception), 'getHttpCode'))
+                http_response_code($exception->getHttpCode());
+            else
+                http_response_code(500);
+
+            echo $exception->getMessage();
+        }
+        die;
     }
 
     public function register(string $fileJSON): void
@@ -23,12 +52,94 @@ class Router implements RouterInterface
         $this->registeredMethods[$jsonConfig->object] = $jsonConfig->methods;
     }
 
-    private function splitURI(): ?array
+    /**
+     * @throws InvalidRoute
+     */
+    private function splitURI(): array
     {
         if (preg_match("/^\/([A-Za-z]+)\.([A-Za-z]+)$/", $this->URI, $matches))
         {
             return [$matches[1], $matches[2]];
         }
-        return null;
+        throw new InvalidRoute(1);
+    }
+
+    /**
+     * @throws InvalidRoute
+     * @throws BackendError
+     */
+    private function route(): array
+    {
+        // Перевірка чи зареєстровані такі об'єкти й методи
+        $this->objectIsset();
+        $this->methodIsset();
+
+        // Перевірка чи встановлений потрібний реквест метод
+        $this->requestMethodSetted();
+
+        // Перевірка чи є ті параметри які приймає метод
+        //$this->paramsIsset();
+
+        // Перевірка чи існує такий клас і його статичний метод
+        $class = "API\\Objects\\$this->objectURI";
+        $method = $this->methodURI;
+        $this->classIsset($class);
+        $this->methodClassIsset($class, $method);
+
+
+        [$jsonResponse, $httpCode] = call_user_func_array([$class, $method], []);
+
+        return [$jsonResponse, $httpCode];
+    }
+
+    /**
+     * @throws InvalidRoute
+     */
+    private function objectIsset(): void
+    {
+        if (!key_exists($this->objectURI, $this->registeredMethods))
+            throw new InvalidRoute(2);
+    }
+
+    /**
+     * @throws InvalidRoute
+     */
+    private function methodIsset(): void
+    {
+        $method = $this->methodURI;
+        if (!isset($this->registeredMethods[$this->objectURI]->$method))
+            throw new InvalidRoute(3);
+    }
+
+    /**
+     * @throws InvalidRoute
+     */
+    # .-- .... .- -   - .... .   .... . .-.. .-..  .-- .. - ....  -. .- -- .. -. --.  - .... .. ...  ..-. ..- -. -.-. - .. --- -. ..--.. ..--.. ..--..
+
+    private function requestMethodSetted(): void
+    {
+        $method = $this->methodURI;
+        $curMethod = $this->requestMethod;
+        $regMethod = $this->registeredMethods[$this->objectURI]->$method->request_method;
+        if ($curMethod !== $regMethod)
+            throw new InvalidRoute(4);
+    }
+
+    /**
+     * @throws BackendError
+     */
+    private function classIsset(string $class): void
+    {
+        if (!class_exists($class))
+            throw new BackendError(-2, "Class `$class` not implemented.");
+    }
+
+    /**
+     * @throws BackendError
+     */
+    private function methodClassIsset(string $class, string $method): void
+    {
+        if (!method_exists($class, $method))
+            throw new BackendError(-3, "Method `$method` class `$class` not implemented.");
     }
 }
