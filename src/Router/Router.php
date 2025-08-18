@@ -2,8 +2,9 @@
 
 namespace API\Router;
 
-use API\Exception\{BackendError, InvalidRoute};
+use API\Exception\{AuthError, BackendError, InvalidRoute};
 use TypeError;
+
 class Router implements RouterInterface
 {
     private string $URI;
@@ -23,7 +24,7 @@ class Router implements RouterInterface
             [$jsonResponse, $httpCode] = $this->route();
             http_response_code($httpCode);
             echo $jsonResponse;
-        } catch (InvalidRoute $exception)
+        } catch (InvalidRoute|AuthError $exception)
         {
             http_response_code($exception->getHttpCode());
             echo json_encode(
@@ -71,24 +72,26 @@ class Router implements RouterInterface
     private function route(): array
     {
         // Перевірка чи зареєстровані такі об'єкти й методи
+        global $request;
         $this->objectIsset();
         $this->methodIsset();
 
         // Перевірка чи встановлений потрібний реквест метод
         $this->requestMethodSetted();
 
-        // Перевірка чи є ті параметри які приймає метод
-        //$this->paramsIsset();
-
         // Перевірка чи існує такий клас і його статичний метод
         $class = "API\\Objects\\$this->objectURI";
         $method = $this->methodURI;
+
         $this->classIsset($class);
         $this->methodClassIsset($class, $method);
 
+        // Перевірка чи є ті параметри які приймає метод
+        $params = $request->getPostArray();
+        $allowed_params = $this->registeredMethods[$this->objectURI]->$method->params;
+        $this->paramsIsset($params, $allowed_params);
 
         [$jsonResponse, $httpCode] = call_user_func_array([$class, $method], []);
-
         return [$jsonResponse, $httpCode];
     }
 
@@ -98,7 +101,9 @@ class Router implements RouterInterface
     private function objectIsset(): void
     {
         if (!key_exists($this->objectURI, $this->registeredMethods))
+        {
             throw new InvalidRoute(2);
+        }
     }
 
     /**
@@ -108,21 +113,25 @@ class Router implements RouterInterface
     {
         $method = $this->methodURI;
         if (!isset($this->registeredMethods[$this->objectURI]->$method))
+        {
             throw new InvalidRoute(3);
+        }
     }
 
     /**
      * @throws InvalidRoute
      */
-    # .-- .... .- -   - .... .   .... . .-.. .-..  .-- .. - ....  -. .- -- .. -. --.  - .... .. ...  ..-. ..- -. -.-. - .. --- -. ..--.. ..--.. ..--..
 
+    # .-- .... .- -   - .... .   .... . .-.. .-..  .-- .. - ....  -. .- -- .. -. --.  - .... .. ...  ..-. ..- -. -.-. - .. --- -. ..--.. ..--.. ..--..
     private function requestMethodSetted(): void
     {
         $method = $this->methodURI;
         $curMethod = $this->requestMethod;
         $regMethod = $this->registeredMethods[$this->objectURI]->$method->request_method;
         if ($curMethod !== $regMethod)
+        {
             throw new InvalidRoute(4);
+        }
     }
 
     /**
@@ -131,7 +140,9 @@ class Router implements RouterInterface
     private function classIsset(string $class): void
     {
         if (!class_exists($class))
+        {
             throw new BackendError(-2, "Class `$class` not implemented.");
+        }
     }
 
     /**
@@ -140,6 +151,34 @@ class Router implements RouterInterface
     private function methodClassIsset(string $class, string $method): void
     {
         if (!method_exists($class, $method))
+        {
             throw new BackendError(-3, "Method `$method` class `$class` not implemented.");
+        }
+    }
+
+    /**
+     * @throws InvalidRoute
+     */
+    private function paramsIsset(array $params, array $allowedParams): void
+    {
+        $missingParams = array_diff($allowedParams, array_keys($params));
+
+        if (!empty($missingParams))
+        {
+            throw new InvalidRoute(6, "Missing [" . implode(", ", $missingParams) . "] params.");
+        }
+
+        foreach ($allowedParams as $key)
+        {
+            if (is_string($params[$key]) && trim($params[$key]) === '')
+            {
+                throw new InvalidRoute(7, "Param `$key` can't be empty.");
+            }
+
+            if ($params[$key] === null)
+            {
+                throw new InvalidRoute(7, "Param `$key` can't be null.");
+            }
+        }
     }
 }

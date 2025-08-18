@@ -14,6 +14,20 @@ trait ErrorCode
         1 => ['message' => 'Invalid URI.', 'httpCode' => 400],
         2 => ['message' => 'Invalid or not exist object.', 'httpCode' => 404],
         3 => ['message' => 'Invalid or not exist method for object.', 'httpCode' => 404],
-        4 => ['message' => 'Invalid request method.', 'httpCode' => 405]
+        4 => ['message' => 'Invalid request method.', 'httpCode' => 405],
+        5 => ['message' => 'Invalid JSON.', 'httpCode' => 405],
+        6 => ['message' => 'Missing $[] params.', 'httpCode' => 405],
+        7 => ['message' => 'Param `$p` can\'t be empty/null.', 'httpCode' => 405],
+
+        # Auth Error
+        10 => ['message' => 'Minimum length for username is ' . MIN_CHAR_USERNAME . ' symbols.', 'httpCode' => 406],
+        11 => ['message' => 'Maximum length for username is ' . MAX_CHAR_USERNAME . ' symbols.', 'httpCode' => 414],
+        12 => ['message' => 'Username contain invalid or rjaka symbol.', 'httpCode' => 406],
+        13 => ['message' => 'Minimum length for password is ' . MIN_CHAR_PASSWORD . ' symbols.', 'httpCode' => 406],
+        14 => ['message' => 'Password not equal.', 'httpCode' => 412],
+        15 => ['message' => 'Invalid email.', 'httpCode' => 406],
+        16 => ['message' => 'Other user have this username.', 'httpCode' => 409],
+        17 => ['message' => 'Other user sign up with this email.', 'httpCode' => 409],
+        18 => ['message' => 'Registration error.', 'httpCode' => 404]
     ];
 }

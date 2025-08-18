@@ -3,7 +3,7 @@
   "methods":{
     "signUp": {
       "request_method": "POST",
-      "params": ["email", "username", "password", "password"]
+      "params": ["email", "username", "password", "confirm_password"]
     }
   }
 }
