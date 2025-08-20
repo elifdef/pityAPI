@@ -2,7 +2,10 @@
 
 namespace API\Router;
 
-use API\Exception\{AuthError, BackendError, InvalidRoute};
+use API\Exception\AuthError;
+use API\Exception\BackendError;
+use API\Exception\InvalidRoute;
+use PDOException;
 use TypeError;
 
 class Router implements RouterInterface
@@ -22,6 +25,7 @@ class Router implements RouterInterface
             $this->requestMethod = $requestMethod;
             [$this->objectURI, $this->methodURI] = $this->splitURI();
             [$jsonResponse, $httpCode] = $this->route();
+
             http_response_code($httpCode);
             echo $jsonResponse;
         } catch (InvalidRoute|AuthError $exception)
@@ -35,14 +39,24 @@ class Router implements RouterInterface
                     ]
                 ]
             );
-        } catch (BackendError|TypeError $exception)
+        } catch (PDOException|BackendError|TypeError  $exception)
         {
             if (method_exists(get_class($exception), 'getHttpCode'))
                 http_response_code($exception->getHttpCode());
             else
                 http_response_code(500);
-
-            echo $exception->getMessage();
+            echo json_encode(
+                [
+                    "error" => [
+                        "code" => -1,
+                        "message" => 'Internal Server Error.',
+                        'debugInfo' => [
+                            'message' => $exception->getMessage(),
+                            'trace' => $exception->getTraceAsString()
+                        ]
+                    ]
+                ]
+            );
         }
         die;
     }
@@ -71,8 +85,8 @@ class Router implements RouterInterface
      */
     private function route(): array
     {
-        // Перевірка чи зареєстровані такі об'єкти й методи
         global $request;
+        // Перевірка чи зареєстровані такі об'єкти й методи
         $this->objectIsset();
         $this->methodIsset();
 

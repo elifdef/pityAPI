@@ -1,9 +1,21 @@
 {
   "object": "Account",
-  "methods":{
+  "methods": {
     "signUp": {
       "request_method": "POST",
-      "params": ["email", "username", "password", "confirm_password"]
+      "params": [
+        "email",
+        "username",
+        "password",
+        "confirm_password"
+      ]
+    },
+    "signIn": {
+      "request_method": "POST",
+      "params": [
+        "email",
+        "password"
+      ]
     }
   }
 }

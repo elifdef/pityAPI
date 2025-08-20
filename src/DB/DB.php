@@ -12,6 +12,7 @@ class DB
     private string $table_name;
     private string $username;
     private string $password;
+    private string $charset;
 
     public function __construct()
     {
@@ -19,12 +20,10 @@ class DB
         $this->table_name = $_ENV['DATABASE_TABLE'];
         $this->username = $_ENV['DATABASE_USERNAME'];
         $this->password = $_ENV['DATABASE_PASSWORD'];
-        try {
-            $dsn = "mysql:host=" . $this->host_name . ";dbname=" . $this->table_name;
-            $this->con = new PDO($dsn, $this->username, $this->password);
-            $this->con->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $error) {
-            error_log($error->getMessage());
-        }
+        $this->charset = $_ENV['DATABASE_CHARSET'];
+
+        $dsn = "mysql:host=$this->host_name;dbname=$this->table_name;charset=$this->charset";
+        $this->con = new PDO($dsn, $this->username, $this->password);
+        $this->con->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     }
 }

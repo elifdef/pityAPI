@@ -5,14 +5,12 @@ namespace API\Services\Auth;
 use API\Exception\AuthError;
 use API\Repositories\AccountRepository;
 
-class SignUp
+class SignUp extends AccountRepository
 {
     private string $email;
     private string $username;
     private string $password;
     private string $confirm_password;
-
-    private AccountRepository $accountRepository;
 
     /**
      * @throws AuthError
@@ -23,7 +21,6 @@ class SignUp
         $this->username = $username;
         $this->password = $password;
         $this->confirm_password = $confirm_password;
-        $this->accountRepository = new AccountRepository();
 
         return $this->register();
     }
@@ -41,8 +38,9 @@ class SignUp
         if (!$this->emailIsValidate()) throw new AuthError(15);
         if ($this->alreadyHaveUserN()) throw new AuthError(16);
         if ($this->alreadyHaveEmail()) throw new AuthError(17);
+        if ($this->alreadyHaveIPAdd()) throw new AuthError(18);
 
-        return $this->accountRepository->createUser($this->email, $this->username, $this->password);
+        return $this->createUser($this->email, $this->username, $this->password);
     }
 
     private function minCharUsername(): bool
@@ -77,11 +75,16 @@ class SignUp
 
     private function alreadyHaveUserN(): bool
     {
-        return $this->accountRepository->checkUsername($this->username);
+        return $this->checkUsername($this->username);
     }
 
     private function alreadyHaveEmail(): bool
     {
-        return $this->accountRepository->checkEmail($this->email);
+        return $this->checkEmail($this->email);
+    }
+
+    private function alreadyHaveIPAdd(): bool
+    {
+        return $this->checkIP();
     }
 }

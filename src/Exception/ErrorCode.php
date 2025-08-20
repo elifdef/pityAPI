@@ -28,6 +28,9 @@ trait ErrorCode
         15 => ['message' => 'Invalid email.', 'httpCode' => 406],
         16 => ['message' => 'Other user have this username.', 'httpCode' => 409],
         17 => ['message' => 'Other user sign up with this email.', 'httpCode' => 409],
-        18 => ['message' => 'Registration error.', 'httpCode' => 404]
+        18 => ['message' => 'You can\'t created more 1 account.', 'httpCode' => 404],
+
+        19 => ['message' => 'Invalid email or password.', 'httpCode' => 404],
+        20 => ['message' => 'Invalid token.', 'httpCode' => 404]
     ];
 }

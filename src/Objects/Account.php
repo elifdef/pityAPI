@@ -8,7 +8,6 @@ use API\Services\AuthService;
 
 class Account
 {
-
     /**
      * @throws InvalidRoute
      * @throws AuthError
@@ -24,6 +23,22 @@ class Account
         $password = $json->password;
         $confirm_password = $json->confirm_password;
 
-        return AuthService::signUp($email, $username, $password, $confirm_password);
+        return (new AuthService)->signUp($email, $username, $password, $confirm_password);
+    }
+
+
+    /**
+     * @throws AuthError
+     * @throws InvalidRoute
+     */
+    public static function signIn(): array
+    {
+        global $request;
+        $json = $request->getPostObject();
+
+        $email = $json->email;
+        $password = $json->password;
+
+        return (new AuthService)->signIn($email, $password);
     }
 }

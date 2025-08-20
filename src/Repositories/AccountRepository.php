@@ -3,29 +3,96 @@
 namespace API\Repositories;
 
 use API\DB\DB;
+use API\Exception\AuthError;
 
 class AccountRepository extends DB
 {
-    public function checkUsername(string $username): bool
+    protected function checkUsername(string $username): bool
     {
         $check = $this->con->prepare("SELECT `id` FROM `users` WHERE `username` = ?");
         $check->execute([htmlspecialchars($username)]);
         return $check->rowCount() > 0;
     }
 
-    public function checkEmail(string $email): bool
+    protected function checkEmail(string $email): bool
     {
         $check = $this->con->prepare("SELECT `id` FROM `users` WHERE `email` = ?");
         $check->execute([$email]);
         return $check->rowCount() > 0;
     }
 
-    public function createUser(string $email, string $username, string $password): bool
+    protected function createUser(string $email, string $username, string $password): bool
     {
+        global $request;
         $createUser = $this->con->prepare("INSERT INTO `users`
-        (`email`,`username`, `password`, `token`, `online_status`, `role`) VALUES (?,?,?,?,false,?)");
+        (`email`,`username`, `password`, `token`,`online_status`, `IP`, `role`) VALUES (?,?,?,?,false,?,?)");
         $token = bin2hex(random_bytes(LENGTH_USER_TOKEN));
-        $createUser->execute([$email, $username, $password, $token, DEFAULT_ROLE]);
+        $ip = $request->getClientIP();
+        $password = password_hash($password, PASSWORD_DEFAULT);
+        $createUser->execute([$email, $username, $password, $token, $ip, DEFAULT_ROLE]);
         return $createUser->rowCount() > 0;
+    }
+
+    /**
+     * @throws AuthError
+     */
+    protected function checkPassword(string $email, string $password): bool
+    {
+        $valid_password = $this->con->prepare("SELECT `password` FROM `users` WHERE `email` = :email");
+        $valid_password->bindParam(':email', $email);
+        $valid_password->execute();
+        $passwordDB = $valid_password->fetchObject();
+        $passwordDB = $passwordDB->password ?? throw new AuthError(19);
+        return password_verify($password, $passwordDB);
+    }
+
+    protected function createSession(int $userID): string
+    {
+        global $request;
+        $sessionToken = bin2hex(random_bytes(LENGTH_USER_SESSION_TOKEN));
+        $OS = $request->getOS();
+        $browser = $request->getBrowser();
+        $IP = $request->getClientIP();
+
+        $alreadyLogin = $this->getSessionTokenByID($userID);
+        if (!empty($alreadyLogin))
+            return $alreadyLogin;
+
+        $createSession = $this->con->prepare("INSERT INTO `sessions`
+        (`user_id`, `token`, `created_at`, `client_ip`, `client_os`, `client_browser`)VALUES (?, ?, NOW(), ?, ?, ?)");
+        $createSession->execute([$userID, $sessionToken, $IP, $OS, $browser]);
+        return $sessionToken;
+    }
+
+    protected function getSessionTokenByID(int $userID): ?string
+    {
+        // також перевір з якого пристрою заходить користувач
+        // якщо з пк - свій токен, з телефона/холодильника/тостера - свій
+        // 19.08.2025   23:34
+        global $request;
+
+        $getToken = $this->con->prepare("SELECT `token` FROM `sessions` WHERE 
+        `user_id` = ? AND `client_ip` = ? AND `client_os` = ? AND `client_browser` = ?");
+
+        $getToken->execute([$userID, $request->getClientIP(), $request->getOS(), $request->getBrowser()]);
+        $fetch = $getToken->fetchObject();
+        return empty($fetch->token) ? null : $fetch->token;
+    }
+
+    protected function getUserID(string $email): ?int
+    {
+        $getID = $this->con->prepare("SELECT `id` FROM `users` WHERE `email` = ?");
+        $getID->execute([$email]);
+        $fetch = $getID->fetchObject();
+        return empty($fetch->id) ? null : $fetch->id;
+    }
+
+    protected function checkIP(?string $ip = null): bool
+    {
+        global $request;
+        $givenIP = $ip ?? $request->getClientIP();
+        $check = $this->con->prepare("SELECT `id` FROM `users` WHERE `ip` = ?");
+        $check->execute([$givenIP]);
+        return $check->rowCount() > 0;
     }
 }

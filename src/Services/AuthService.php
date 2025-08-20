@@ -3,23 +3,39 @@
 namespace API\Services;
 
 use API\Exception\AuthError;
+use API\Repositories\AccountRepository;
 use API\Services\Auth\SignUp;
 
-class AuthService
+class AuthService extends AccountRepository
 {
     /**
      * @throws AuthError
      */
-    public static function signUp(string $email, string $username, string $password, string $confirm_password): array
+    public function signUp(string $email, string $username, string $password, string $confirm_password): array
     {
         $signUp = new SignUp();
         $result = $signUp->signUp($email, $username, $password, $confirm_password);
-        if (!$result) throw new AuthError(18);
+        $message = $result ? "Registration successfully." : "Error registration.";
+        return [json_encode(
+            [
+                'status' => $result,
+                'message' => $message
+            ]
+        ), 201];
+    }
+
+    /**
+     * @throws AuthError
+     */
+    public function signIn($email, $password): array
+    {
+        if (!$this->checkPassword($email, $password))
+            throw new AuthError(19);
         return [json_encode(
             [
                 'status' => true,
-                'message' => 'Registered successfully.'
+                'token' => $this->createSession($this->getUserID($email))
             ]
-        ), 201];
+        ), 200];
     }
 }

@@ -2,4 +2,4 @@
 
 namespace API\Exception;
 
-class BackendError extends Exception {}
+class BackendError extends Exception { }

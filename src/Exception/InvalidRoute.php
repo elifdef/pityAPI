@@ -2,4 +2,4 @@
 
 namespace API\Exception;
 
-class InvalidRoute extends Exception {}
+class InvalidRoute extends Exception { }
