@@ -41,4 +41,17 @@ class Account
 
         return (new AuthService)->signIn($email, $password);
     }
+
+    /**
+     * @throws InvalidRoute
+     * @throws AuthError
+     */
+    public static function getProfile(): array
+    {
+        global $request;
+        $token = $request->getPostObject()->token;
+
+        $user = (new AuthService())->getUserInfo($token);
+        return [json_encode($user), 200];
+    }
 }

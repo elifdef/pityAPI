@@ -16,6 +16,12 @@
         "email",
         "password"
       ]
+    },
+    "getProfile": {
+      "request_method": "POST",
+      "params": [
+        "token"
+      ]
     }
   }
 }

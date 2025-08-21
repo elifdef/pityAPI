@@ -95,4 +95,18 @@ class AccountRepository extends DB
         $check->execute([$givenIP]);
         return $check->rowCount() > 0;
     }
+
+    protected function checkToken(string $token): bool
+    {
+        $check = $this->con->prepare("SELECT * FROM `sessions` WHERE `token` = ?");
+        $check->execute([$token]);
+        return $check->rowCount() > 0;
+    }
+
+    protected function getUserInfoByToken(string $token): object
+    {
+        $getUser = $this->con->prepare("SELECT sessions.user_id, `username`,`email`,`first_name`,`last_name`,`gender`,`private_blog`,`private_profile`,`country_id`, CONCAT(countries.name, ' ', countries.emoji) AS `country_name`,`birthdate`,users.created_at,`online_status`,`role_id`, roles.name AS `role` FROM `users` INNER JOIN countries ON countries.id = users.country_id INNER JOIN roles ON roles.id = users.role_id INNER JOIN sessions ON sessions.token = ?");
+        $getUser->execute([$token]);
+        return $getUser->fetchObject();
+    }
 }

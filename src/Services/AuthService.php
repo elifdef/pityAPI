@@ -38,4 +38,32 @@ class AuthService extends AccountRepository
             ]
         ), 200];
     }
+
+    /**
+     * @throws AuthError
+     */
+    public function getUserInfo(string $token): array
+    {
+        if (!$this->checkToken($token))
+            throw new AuthError(20);
+
+        $user = $this->getUserInfoByToken($token);
+        return
+            [
+                "id" => $user->user_id,
+                "username" => $user->username,
+                "email" => $user->email,
+                "first_name" => $user->first_name,
+                "last_name" => $user->last_name,
+                "gender" => $user->gender,
+                "private_blog" => $user->private_blog,
+                "private_profile" => $user->private_profile,
+                "country_id" => $user->country_id,
+                "country_name" => $user->country_name,
+                "birthdate" => $user->birthdate,
+                "created_at" => $user->created_at,
+                "online_status" => $user->online_status,
+                "role" => $user->role
+            ];
+    }
 }
