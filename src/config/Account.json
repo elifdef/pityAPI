@@ -18,9 +18,9 @@
       ]
     },
     "getProfile": {
-      "request_method": "POST",
+      "request_method": "GET",
       "params": [
-        "token"
+        "username"
       ]
     }
   }

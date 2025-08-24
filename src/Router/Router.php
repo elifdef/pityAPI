@@ -72,7 +72,10 @@ class Router implements RouterInterface
      */
     private function splitURI(): array
     {
-        if (preg_match("/^\/([A-Za-z]+)\.([A-Za-z]+)$/", $this->URI, $matches))
+        if (preg_match(
+            '~^/([A-Za-z]+)\.([A-Za-z]+)(?:/([^?]*))?(?:\?(.*))?$~',
+            $this->URI,
+            $matches))
         {
             return [$matches[1], $matches[2]];
         }
@@ -101,7 +104,10 @@ class Router implements RouterInterface
         $this->methodClassIsset($class, $method);
 
         // Перевірка чи є ті параметри які приймає метод
-        $params = $request->getPostArray();
+        $params =
+            $this->requestMethod === 'POST'
+                ? $request->getPOSTArray()
+                : $request->getGET();
         $allowed_params = $this->registeredMethods[$this->objectURI]->$method->params;
         $this->paramsIsset($params, $allowed_params);
 

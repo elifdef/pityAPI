@@ -97,7 +97,7 @@ readonly class Request
     /**
      * @throws InvalidRoute
      */
-    public function getPostObject(): object
+    public function getPOSTObject(): object
     {
         return json_decode($this->post) ?? throw new InvalidRoute(5);
     }
@@ -105,8 +105,13 @@ readonly class Request
     /**
      * @throws InvalidRoute
      */
-    public function getPostArray(): array
+    public function getPOSTArray(): array
     {
         return json_decode($this->post, true) ?? throw new InvalidRoute(5);
+    }
+
+    public function getGET(): array
+    {
+        return $this->get;
     }
 }

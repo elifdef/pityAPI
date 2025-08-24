@@ -12,11 +12,10 @@ class Account
      * @throws InvalidRoute
      * @throws AuthError
      */
-
     public static function signUp(): array
     {
         global $request;
-        $json = $request->getPostObject();
+        $json = $request->getPOSTObject();
 
         $email = $json->email;
         $username = $json->username;
@@ -34,7 +33,7 @@ class Account
     public static function signIn(): array
     {
         global $request;
-        $json = $request->getPostObject();
+        $json = $request->getPOSTObject();
 
         $email = $json->email;
         $password = $json->password;
@@ -43,15 +42,15 @@ class Account
     }
 
     /**
-     * @throws InvalidRoute
      * @throws AuthError
      */
     public static function getProfile(): array
     {
-        global $request;
-        $token = $request->getPostObject()->token;
 
-        $user = (new AuthService())->getUserInfo($token);
+        global $request;
+        $username = $request->getGET()['username'];
+
+        $user = (new AuthService)->getUserInfo($username);
         return [json_encode($user), 200];
     }
 }

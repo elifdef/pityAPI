@@ -34,7 +34,7 @@ class AuthService extends AccountRepository
         return [json_encode(
             [
                 'status' => true,
-                'token' => $this->createSession($this->getUserID($email))
+                'token' => $this->createSession($this->getUserIDByEmail($email))
             ]
         ), 200];
     }
@@ -42,15 +42,22 @@ class AuthService extends AccountRepository
     /**
      * @throws AuthError
      */
-    public function getUserInfo(string $token): array
+    public function getUserInfo(string $username): array
     {
-        if (!$this->checkToken($token))
-            throw new AuthError(20);
+        if (!$this->checkUsername($username))
+            throw new AuthError(21);
 
-        $user = $this->getUserInfoByToken($token);
+        $id = $this->getUserIDByUsername($username);
+        $user = $this->getUserInfoByID($id);
         return
-            [
-                "id" => $user->user_id,
+            ($user->private_profile)
+                ? [
+                "username" => $user->username,
+                "private_profile" => $user->private_profile,
+                "role" => $user->role
+            ]
+                : [
+                "id" => $user->id,
                 "username" => $user->username,
                 "email" => $user->email,
                 "first_name" => $user->first_name,
@@ -58,7 +65,6 @@ class AuthService extends AccountRepository
                 "gender" => $user->gender,
                 "private_blog" => $user->private_blog,
                 "private_profile" => $user->private_profile,
-                "country_id" => $user->country_id,
                 "country_name" => $user->country_name,
                 "birthdate" => $user->birthdate,
                 "created_at" => $user->created_at,

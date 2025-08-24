@@ -79,10 +79,18 @@ class AccountRepository extends DB
         return empty($fetch->token) ? null : $fetch->token;
     }
 
-    protected function getUserID(string $email): ?int
+    protected function getUserIDByEmail(string $email): ?int
     {
         $getID = $this->con->prepare("SELECT `id` FROM `users` WHERE `email` = ?");
         $getID->execute([$email]);
+        $fetch = $getID->fetchObject();
+        return empty($fetch->id) ? null : $fetch->id;
+    }
+
+    protected function getUserIDByUsername(string $username): ?int
+    {
+        $getID = $this->con->prepare("SELECT `id` FROM `users` WHERE `username` = ?");
+        $getID->execute([$username]);
         $fetch = $getID->fetchObject();
         return empty($fetch->id) ? null : $fetch->id;
     }
@@ -103,10 +111,15 @@ class AccountRepository extends DB
         return $check->rowCount() > 0;
     }
 
-    protected function getUserInfoByToken(string $token): object
+    protected function getUserInfoByID(int $id)
     {
-        $getUser = $this->con->prepare("SELECT sessions.user_id, `username`,`email`,`first_name`,`last_name`,`gender`,`private_blog`,`private_profile`,`country_id`, CONCAT(countries.name, ' ', countries.emoji) AS `country_name`,`birthdate`,users.created_at,`online_status`,`role_id`, roles.name AS `role` FROM `users` INNER JOIN countries ON countries.id = users.country_id INNER JOIN roles ON roles.id = users.role_id INNER JOIN sessions ON sessions.token = ?");
-        $getUser->execute([$token]);
+        $getUser = $this->con->prepare("
+SELECT users.id, `username`,`email`,`first_name`,`last_name`,`gender`,`private_blog`,`private_profile`,`country_id`, CONCAT(countries.name, ' ', countries.emoji) AS `country_name`,`birthdate`,`created_at`,`online_status`,`role_id`, roles.name AS `role` 
+FROM `users`
+INNER JOIN countries ON countries.id = users.country_id 
+INNER JOIN roles ON roles.id = users.role_id
+WHERE users.id = ?");
+        $getUser->execute([$id]);
         return $getUser->fetchObject();
     }
 }
