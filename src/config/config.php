@@ -3,11 +3,9 @@
 const MIN_CHAR_USERNAME = 5;
 const MAX_CHAR_USERNAME = 32;
 const MIN_CHAR_PASSWORD = 8;
-
-const DEFAULT_ROLE = 'user';
 const LENGTH_USER_TOKEN = 64;
 const LENGTH_USER_SESSION_TOKEN = 32;
-
+const ALLOW_SIGNUP_FROM_SAME_IP = true;
 const CLOUDFLARE_IP_LIST = [
     '103.21.244.0/22',
     '103.22.200.0/22',

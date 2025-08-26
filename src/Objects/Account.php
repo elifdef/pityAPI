@@ -44,7 +44,7 @@ class Account
     /**
      * @throws AuthError
      */
-    public static function getProfile(): array
+    public static function getProfileInfo(): array
     {
 
         global $request;

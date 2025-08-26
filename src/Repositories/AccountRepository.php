@@ -25,12 +25,19 @@ class AccountRepository extends DB
     {
         global $request;
         $createUser = $this->con->prepare("INSERT INTO `users`
-        (`email`,`username`, `password`, `token`,`online_status`, `IP`, `role`) VALUES (?,?,?,?,false,?,?)");
+        (`email`,`username`, `password`, `token`,`online_status`, `IP`, `role_id`) VALUES (?, ?, ?, ?, false, ?, 0)");
         $token = bin2hex(random_bytes(LENGTH_USER_TOKEN));
         $ip = $request->getClientIP();
         $password = password_hash($password, PASSWORD_DEFAULT);
-        $createUser->execute([$email, $username, $password, $token, $ip, DEFAULT_ROLE]);
+        $createUser->execute([$email, $username, $password, $token, $ip]);
         return $createUser->rowCount() > 0;
+    }
+
+    protected function createPrivacy(int $id): bool
+    {
+        $createPrivacy = $this->con->prepare("INSERT INTO `privacy` (`user_id`, `hide_birthdate`, `hide_online`, `hide_country`, `hide_gender`, `hide_name`) VALUES (?, false, false, false, false, false)");
+        $createPrivacy->execute([$id]);
+        return $createPrivacy->rowCount() > 0;
     }
 
     /**
@@ -58,8 +65,7 @@ class AccountRepository extends DB
         if (!empty($alreadyLogin))
             return $alreadyLogin;
 
-        $createSession = $this->con->prepare("INSERT INTO `sessions`
-        (`user_id`, `token`, `created_at`, `client_ip`, `client_os`, `client_browser`)VALUES (?, ?, NOW(), ?, ?, ?)");
+        $createSession = $this->con->prepare("INSERT INTO `sessions` (`user_id`, `token`, `created_at`, `client_ip`, `client_os`, `client_browser`)VALUES (?, ?, NOW(), ?, ?, ?)");
         $createSession->execute([$userID, $sessionToken, $IP, $OS, $browser]);
         return $sessionToken;
     }
@@ -71,8 +77,7 @@ class AccountRepository extends DB
         // 19.08.2025   23:34
         global $request;
 
-        $getToken = $this->con->prepare("SELECT `token` FROM `sessions` WHERE 
-        `user_id` = ? AND `client_ip` = ? AND `client_os` = ? AND `client_browser` = ?");
+        $getToken = $this->con->prepare("SELECT `token` FROM `sessions` WHERE `user_id` = ? AND `client_ip` = ? AND `client_os` = ? AND `client_browser` = ?");
 
         $getToken->execute([$userID, $request->getClientIP(), $request->getOS(), $request->getBrowser()]);
         $fetch = $getToken->fetchObject();
@@ -111,15 +116,17 @@ class AccountRepository extends DB
         return $check->rowCount() > 0;
     }
 
-    protected function getUserInfoByID(int $id)
+    protected function getUserInfoByID(int $id): object
     {
-        $getUser = $this->con->prepare("
-SELECT users.id, `username`,`email`,`first_name`,`last_name`,`gender`,`private_blog`,`private_profile`,`country_id`, CONCAT(countries.name, ' ', countries.emoji) AS `country_name`,`birthdate`,`created_at`,`online_status`,`role_id`, roles.name AS `role` 
-FROM `users`
-INNER JOIN countries ON countries.id = users.country_id 
-INNER JOIN roles ON roles.id = users.role_id
-WHERE users.id = ?");
+        $getUser = $this->con->prepare("SELECT users.id, `username`,`email`,`first_name`,`last_name`,`gender_id`,`gender_name` AS `gender`,`private_blog`,`private_profile`,`country_id`, CONCAT(countries.name, ' ', countries.emoji) AS `country_name`,`birthdate`,`created_at`,`online_status`,`role_id`, roles.name AS `role` FROM `users` INNER JOIN genders ON genders.id = users.gender_id INNER JOIN countries ON countries.id = users.country_id INNER JOIN roles ON roles.id = users.role_id WHERE users.id = ?");
         $getUser->execute([$id]);
         return $getUser->fetchObject();
+    }
+
+    protected function getUserPrivacy(int $id): object
+    {
+        $getPrivacy = $this->con->prepare("SELECT * FROM `privacy` WHERE `user_id` = ?");
+        $getPrivacy->execute([$id]);
+        return $getPrivacy->fetchObject();
     }
 }

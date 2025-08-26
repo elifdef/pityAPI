@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Хост: 127.0.0.1
--- Час створення: Сер 21 2025 р., 21:10
+-- Час створення: Сер 26 2025 р., 20:07
 -- Версія сервера: 10.4.32-MariaDB
 -- Версія PHP: 8.2.12
 
@@ -312,11 +312,47 @@ INSERT INTO `countries` (`id`, `name`, `iso2`, `emoji`) VALUES
 --
 
 CREATE TABLE `customization` (
-  `id` int(11) NOT NULL,
   `user_id` int(11) NOT NULL,
   `avatar` varchar(255) NOT NULL,
   `username_color` tinytext NOT NULL,
   `background` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблиці `genders`
+--
+
+CREATE TABLE `genders` (
+  `id` int(11) NOT NULL,
+  `gender_name` char(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Дамп даних таблиці `genders`
+--
+
+INSERT INTO `genders` (`id`, `gender_name`) VALUES
+(0, ''),
+(1, 'Male'),
+(2, 'Female');
+
+-- --------------------------------------------------------
+
+--
+-- Структура таблиці `privacy`
+--
+
+CREATE TABLE `privacy` (
+  `user_id` int(11) NOT NULL,
+  `hide_birthdate` tinyint(1) NOT NULL DEFAULT 0,
+  `hide_online` tinyint(1) NOT NULL DEFAULT 0,
+  `hide_country` tinyint(1) NOT NULL DEFAULT 0,
+  `hide_gender` tinyint(1) NOT NULL DEFAULT 0,
+  `hide_name` tinyint(1) NOT NULL DEFAULT 0,
+  `hide_regdate` tinyint(1) NOT NULL DEFAULT 0,
+  `hide_role` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -368,7 +404,7 @@ CREATE TABLE `users` (
   `token` varchar(255) NOT NULL,
   `first_name` varchar(255) NOT NULL,
   `last_name` varchar(255) NOT NULL,
-  `gender` varchar(255) NOT NULL,
+  `gender_id` int(11) NOT NULL DEFAULT 0,
   `private_blog` tinyint(1) NOT NULL DEFAULT 0,
   `private_profile` tinyint(1) NOT NULL DEFAULT 0,
   `country_id` mediumint(8) UNSIGNED DEFAULT 0,
@@ -389,9 +425,8 @@ CREATE TABLE `users` (
 -- Індекси таблиці `blog`
 --
 ALTER TABLE `blog`
-  ADD PRIMARY KEY (`hash_post`),
-  ADD KEY `sender_id` (`sender_id`),
-  ADD KEY `recipient_id` (`recipient_id`);
+  ADD KEY `blog_ibfk_1` (`sender_id`),
+  ADD KEY `blog_ibfk_2` (`recipient_id`);
 
 --
 -- Індекси таблиці `countries`
@@ -403,8 +438,21 @@ ALTER TABLE `countries`
 -- Індекси таблиці `customization`
 --
 ALTER TABLE `customization`
-  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_id_2` (`user_id`),
   ADD KEY `user_id` (`user_id`) USING BTREE;
+
+--
+-- Індекси таблиці `genders`
+--
+ALTER TABLE `genders`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Індекси таблиці `privacy`
+--
+ALTER TABLE `privacy`
+  ADD UNIQUE KEY `user_id_2` (`user_id`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Індекси таблиці `roles`
@@ -425,7 +473,8 @@ ALTER TABLE `sessions`
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD KEY `country_id` (`country_id`),
-  ADD KEY `role_id` (`role_id`);
+  ADD KEY `role_id` (`role_id`),
+  ADD KEY `gender_id` (`gender_id`);
 
 --
 -- AUTO_INCREMENT для збережених таблиць
@@ -438,10 +487,10 @@ ALTER TABLE `countries`
   MODIFY `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=252;
 
 --
--- AUTO_INCREMENT для таблиці `customization`
+-- AUTO_INCREMENT для таблиці `genders`
 --
-ALTER TABLE `customization`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `genders`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT для таблиці `roles`
@@ -470,7 +519,13 @@ ALTER TABLE `blog`
 -- Обмеження зовнішнього ключа таблиці `customization`
 --
 ALTER TABLE `customization`
-  ADD CONSTRAINT `customization_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `customization_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Обмеження зовнішнього ключа таблиці `privacy`
+--
+ALTER TABLE `privacy`
+  ADD CONSTRAINT `privacy_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Обмеження зовнішнього ключа таблиці `sessions`
@@ -483,7 +538,8 @@ ALTER TABLE `sessions`
 --
 ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`country_id`) REFERENCES `countries` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`);
+  ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`),
+  ADD CONSTRAINT `users_ibfk_3` FOREIGN KEY (`gender_id`) REFERENCES `genders` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

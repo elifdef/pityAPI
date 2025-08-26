@@ -35,12 +35,13 @@ class SignUp extends AccountRepository
         if (!$this->invalidUsername()) throw new AuthError(12);
         if (!$this->minCharPassword()) throw new AuthError(13);
         if (!$this->passwordIsEqual()) throw new AuthError(14);
-        if (!$this->emailIsValidate()) throw new AuthError(15);
-        if ($this->alreadyHaveUserN()) throw new AuthError(16);
-        if ($this->alreadyHaveEmail()) throw new AuthError(17);
-        if ($this->alreadyHaveIPAdd()) throw new AuthError(18);
+        if (!$this->validateEmail()) throw new AuthError(15);
+        if ($this->haveSameUsername()) throw new AuthError(16);
+        if ($this->haveSameEmail()) throw new AuthError(17);
+        if (!ALLOW_SIGNUP_FROM_SAME_IP && $this->haveSameIP()) throw new AuthError(18);
 
-        return $this->createUser($this->email, $this->username, $this->password);
+        return $this->createUser($this->email, $this->username, $this->password) &&
+            $this->createPrivacy($this->getUserIDByEmail($this->email));
     }
 
     private function minCharUsername(): bool
@@ -68,22 +69,22 @@ class SignUp extends AccountRepository
         return $this->password === $this->confirm_password;
     }
 
-    private function emailIsValidate(): bool
+    private function validateEmail(): bool
     {
         return filter_var($this->email, FILTER_VALIDATE_EMAIL);
     }
 
-    private function alreadyHaveUserN(): bool
+    private function haveSameUsername(): bool
     {
         return $this->checkUsername($this->username);
     }
 
-    private function alreadyHaveEmail(): bool
+    private function haveSameEmail(): bool
     {
         return $this->checkEmail($this->email);
     }
 
-    private function alreadyHaveIPAdd(): bool
+    private function haveSameIP(): bool
     {
         return $this->checkIP();
     }

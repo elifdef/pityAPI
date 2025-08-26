@@ -49,27 +49,50 @@ class AuthService extends AccountRepository
 
         $id = $this->getUserIDByUsername($username);
         $user = $this->getUserInfoByID($id);
+        $privacy = $this->getUserPrivacy($id);
         return
-            ($user->private_profile)
-                ? [
-                "username" => $user->username,
-                "private_profile" => $user->private_profile,
-                "role" => $user->role
-            ]
-                : [
+            [
                 "id" => $user->id,
                 "username" => $user->username,
-                "email" => $user->email,
-                "first_name" => $user->first_name,
-                "last_name" => $user->last_name,
-                "gender" => $user->gender,
-                "private_blog" => $user->private_blog,
                 "private_profile" => $user->private_profile,
-                "country_name" => $user->country_name,
-                "birthdate" => $user->birthdate,
-                "created_at" => $user->created_at,
-                "online_status" => $user->online_status,
-                "role" => $user->role
+                "private_blog" => $user->private_blog,
+                ...!$user->private_profile ? [
+                    "name" =>
+                        [
+                            "first" => $privacy->hide_name ? null : $user->first_name,
+                            "last" => $privacy->hide_name ? null : $user->last_name,
+                            "visibility" => !$privacy->hide_name
+                        ],
+                    "gender" => [
+                        "value" => $privacy->hide_gender ? null : $user->gender,
+                        "visibility" => !$privacy->hide_gender
+                    ],
+                    "country" =>
+                        [
+                            "value" => $privacy->hide_country ? null : $user->country_name,
+                            "visibility" => !$privacy->hide_country
+                        ],
+                    "birthdate" =>
+                        [
+                            "value" => $privacy->hide_birthdate ? null : $user->birthdate,
+                            "visibility" => !$privacy->hide_birthdate
+                        ],
+                    "date_registration" =>
+                        [
+                            "value" => $privacy->hide_regdate ? null : $user->created_at,
+                            "visibility" => !$privacy->hide_regdate
+                        ],
+                    "online" =>
+                        [
+                            "value" => $privacy->hide_online ? null : (boolean)$user->online_status,
+                            "visibility" => !$privacy->hide_online
+                        ],
+                    "role" =>
+                        [
+                            "value" => $privacy->hide_role ? null : $user->role,
+                            "visibility" => !$privacy->hide_role
+                        ]
+                ] : []
             ];
     }
 }

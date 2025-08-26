@@ -29,10 +29,10 @@ trait ErrorCode
         16 => ['message' => 'Other user have this username.', 'httpCode' => 409],
         17 => ['message' => 'Other user sign up with this email.', 'httpCode' => 409],
         18 => ['message' => 'You can\'t created more 1 account.', 'httpCode' => 404],
-        19 => ['message' => 'Invalid email or password.', 'httpCode' => 404],
 
+        19 => ['message' => 'Invalid email or password.', 'httpCode' => 404],
         20 => ['message' => 'Invalid token.', 'httpCode' => 404],
         21 => ['message' => 'User not found.', 'httpCode' => 404],
-        22 => ['message' => 'User closet own profile.', 'httpCode' => 403]
+//        22 => ['message' => 'User hide own blog.', 'httpCode' => 403] // ЗАРЕЗЕРВОВАНО
     ];
 }

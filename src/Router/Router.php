@@ -52,6 +52,8 @@ class Router implements RouterInterface
                         "message" => 'Internal Server Error.',
                         'debugInfo' => [
                             'message' => $exception->getMessage(),
+                            'file' => $exception->getFile(),
+                            'line' => $exception->getLine(),
                             'trace' => $exception->getTraceAsString()
                         ]
                     ]
@@ -104,10 +106,12 @@ class Router implements RouterInterface
         $this->methodClassIsset($class, $method);
 
         // Перевірка чи є ті параметри які приймає метод
-        $params =
-            $this->requestMethod === 'POST'
-                ? $request->getPOSTArray()
-                : $request->getGET();
+        $params = match ($this->requestMethod)
+        {
+            'POST', 'PUT', 'PATCH', 'DELETE' => $request->getPOSTArray(),
+            'GET' => $request->getGET(),
+            default => 'How Did We Get Here?'
+        };
         $allowed_params = $this->registeredMethods[$this->objectURI]->$method->params;
         $this->paramsIsset($params, $allowed_params);
 
