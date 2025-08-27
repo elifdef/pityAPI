@@ -14,7 +14,7 @@ class Router implements RouterInterface
     private string $requestMethod;
     private string $objectURI;
     private string $methodURI;
-    private array $registeredMethods = [];
+    private array $test;
 
     public function dispatch(string $requestURI, string $requestMethod): void
     {
@@ -63,12 +63,6 @@ class Router implements RouterInterface
         die;
     }
 
-    public function register(string $fileJSON): void
-    {
-        $jsonConfig = json_decode(file_get_contents($fileJSON));
-        $this->registeredMethods[$jsonConfig->object] = $jsonConfig->methods;
-    }
-
     /**
      * @throws InvalidRoute
      */
@@ -96,7 +90,7 @@ class Router implements RouterInterface
         $this->methodIsset();
 
         // Перевірка чи встановлений потрібний реквест метод
-        $this->requestMethodSetted();
+        $this->correctRequestMethod();
 
         // Перевірка чи існує такий клас і його статичний метод
         $class = "API\\Objects\\$this->objectURI";
@@ -112,7 +106,7 @@ class Router implements RouterInterface
             'GET' => $request->getGET(),
             default => 'How Did We Get Here?'
         };
-        $allowed_params = $this->registeredMethods[$this->objectURI]->$method->params;
+        $allowed_params = $this->test[$this->objectURI]->getMethods()[$this->methodURI]['allowed_params'];
         $this->paramsIsset($params, $allowed_params);
 
         [$jsonResponse, $httpCode] = call_user_func_array([$class, $method], []);
@@ -124,7 +118,7 @@ class Router implements RouterInterface
      */
     private function objectIsset(): void
     {
-        if (!key_exists($this->objectURI, $this->registeredMethods))
+        if (!key_exists($this->objectURI, $this->test))
         {
             throw new InvalidRoute(2);
         }
@@ -135,8 +129,7 @@ class Router implements RouterInterface
      */
     private function methodIsset(): void
     {
-        $method = $this->methodURI;
-        if (!isset($this->registeredMethods[$this->objectURI]->$method))
+        if (!key_exists($this->methodURI, $this->test[$this->objectURI]->getMethods()))
         {
             throw new InvalidRoute(3);
         }
@@ -146,13 +139,10 @@ class Router implements RouterInterface
      * @throws InvalidRoute
      */
 
-    # .-- .... .- -   - .... .   .... . .-.. .-..  .-- .. - ....  -. .- -- .. -. --.  - .... .. ...  ..-. ..- -. -.-. - .. --- -. ..--.. ..--.. ..--..
-    private function requestMethodSetted(): void
+    private function correctRequestMethod(): void
     {
-        $method = $this->methodURI;
-        $curMethod = $this->requestMethod;
-        $regMethod = $this->registeredMethods[$this->objectURI]->$method->request_method;
-        if ($curMethod !== $regMethod)
+        $regMethod = $this->test[$this->objectURI]->getMethods()[$this->methodURI]['request_method'];
+        if ($this->requestMethod !== $regMethod)
         {
             throw new InvalidRoute(4);
         }
@@ -204,5 +194,13 @@ class Router implements RouterInterface
                 throw new InvalidRoute(7, "Param `$key` can't be null.");
             }
         }
+    }
+
+    public function createObject(string $objectName, string $className): RouterObjectInterface
+    {
+        // TODO: Implement createObject() method.
+        $config = new RouterObject($objectName, $className, $this);
+        $this->test[$objectName] = $config;
+        return $config;
     }
 }
