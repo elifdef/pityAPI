@@ -52,4 +52,14 @@ class RouterObject implements RouterObjectInterface
     {
         return $this->methods;
     }
+
+    public function getAllowedParams(string $methodName): ?array
+    {
+        return $this->methods[$methodName]['allowed_params'] ?? null;
+    }
+
+    public function getRequestMethod(string $methodName): ?string
+    {
+        return $this->methods[$methodName]['request_method'] ?? null;
+    }
 }

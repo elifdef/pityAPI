@@ -10,18 +10,22 @@ use TypeError;
 
 class Router implements RouterInterface
 {
-    private string $URI;
+    # Те що отримали від сервера: URL і HTTP метод.
+    private string $requestURI;
     private string $requestMethod;
+
+    # Для зручності виділяємо дві окремі змінні, щоб зберегти отриманий об'єкт і метод
     private string $objectURI;
     private string $methodURI;
-    private array $test;
+
+    # Зареєстровані маршрути де вказано все ще потрібно
+    private array $routes;
 
     public function dispatch(string $requestURI, string $requestMethod): void
     {
-        // TODO: Implement dispatch() method.
         try
         {
-            $this->URI = $requestURI;
+            $this->requestURI = $requestURI;
             $this->requestMethod = $requestMethod;
             [$this->objectURI, $this->methodURI] = $this->splitURI();
             [$jsonResponse, $httpCode] = $this->route();
@@ -63,15 +67,19 @@ class Router implements RouterInterface
         die;
     }
 
+    public function createObject(string $objectName, string $className): RouterObjectInterface
+    {
+        $config = new RouterObject($objectName, $className, $this);
+        $this->routes[$objectName] = $config;
+        return $config;
+    }
+
     /**
      * @throws InvalidRoute
      */
     private function splitURI(): array
     {
-        if (preg_match(
-            '~^/([A-Za-z]+)\.([A-Za-z]+)(?:/([^?]*))?(?:\?(.*))?$~',
-            $this->URI,
-            $matches))
+        if (preg_match('~^/([A-Za-z]+)\.([A-Za-z]+)(?:/([^?]*))?(?:\?(.*))?$~', $this->requestURI, $matches))
         {
             return [$matches[1], $matches[2]];
         }
@@ -81,93 +89,48 @@ class Router implements RouterInterface
     /**
      * @throws InvalidRoute
      * @throws BackendError
+     * @throws AuthError
      */
     private function route(): array
     {
-        global $request;
-        // Перевірка чи зареєстровані такі об'єкти й методи
-        $this->objectIsset();
-        $this->methodIsset();
+        // Перевірка чи є такі об'єкти й методи, встановлений потрібний реквест метод
+        !$this->correctObject() && throw new InvalidRoute(2);
+        !$this->correctMethod() && throw new InvalidRoute(3);
+        !$this->correctRequestMethod() && throw new InvalidRoute(4);
 
-        // Перевірка чи встановлений потрібний реквест метод
-        $this->correctRequestMethod();
-
-        // Перевірка чи існує такий клас і його статичний метод
-        $class = "API\\Objects\\$this->objectURI";
-        $method = $this->methodURI;
-
-        $this->classIsset($class);
-        $this->methodClassIsset($class, $method);
-
-        // Перевірка чи є ті параметри які приймає метод
+        // Перевірка на потрібні параметри й чи вони містять дані
         $params = match ($this->requestMethod)
         {
-            'POST', 'PUT', 'PATCH', 'DELETE' => $request->getPOSTArray(),
-            'GET' => $request->getGET(),
-            default => 'How Did We Get Here?'
+            'POST', 'PUT', 'PATCH', 'DELETE' => $GLOBALS['request']->getPOSTArray(),
+            'GET' => $GLOBALS['request']->getGET()
         };
-        $allowed_params = $this->test[$this->objectURI]->getMethods()[$this->methodURI]['allowed_params'];
+        $allowed_params = $this->routes[$this->objectURI]->getAllowedParams($this->methodURI);
         $this->paramsIsset($params, $allowed_params);
 
-        [$jsonResponse, $httpCode] = call_user_func_array([$class, $method], []);
+        // Перевірка чи існує такий клас і його статичний метод
+        $class = $this->routes[$this->objectURI]->getClassName();
+        $method = $this->methodURI;
+
+        !$this->classIsset($class) && throw new BackendError(-2, "Class `$class` not implemented.");
+        !$this->methodClassIsset($class, $method) && throw new BackendError(-3, "Method `$method` class `$class` not implemented.");
+
+        [$jsonResponse, $httpCode] = call_user_func_array([$class, $method], [$params]);
         return [$jsonResponse, $httpCode];
     }
 
-    /**
-     * @throws InvalidRoute
-     */
-    private function objectIsset(): void
+    private function correctObject(): bool
     {
-        if (!key_exists($this->objectURI, $this->test))
-        {
-            throw new InvalidRoute(2);
-        }
+        return key_exists($this->objectURI, $this->routes);
     }
 
-    /**
-     * @throws InvalidRoute
-     */
-    private function methodIsset(): void
+    private function correctMethod(): bool
     {
-        if (!key_exists($this->methodURI, $this->test[$this->objectURI]->getMethods()))
-        {
-            throw new InvalidRoute(3);
-        }
+        return key_exists($this->methodURI, $this->routes[$this->objectURI]->getMethods());
     }
 
-    /**
-     * @throws InvalidRoute
-     */
-
-    private function correctRequestMethod(): void
+    private function correctRequestMethod(): bool
     {
-        $regMethod = $this->test[$this->objectURI]->getMethods()[$this->methodURI]['request_method'];
-        if ($this->requestMethod !== $regMethod)
-        {
-            throw new InvalidRoute(4);
-        }
-    }
-
-    /**
-     * @throws BackendError
-     */
-    private function classIsset(string $class): void
-    {
-        if (!class_exists($class))
-        {
-            throw new BackendError(-2, "Class `$class` not implemented.");
-        }
-    }
-
-    /**
-     * @throws BackendError
-     */
-    private function methodClassIsset(string $class, string $method): void
-    {
-        if (!method_exists($class, $method))
-        {
-            throw new BackendError(-3, "Method `$method` class `$class` not implemented.");
-        }
+        return $this->requestMethod === $this->routes[$this->objectURI]->getRequestMethod($this->methodURI);
     }
 
     /**
@@ -175,32 +138,41 @@ class Router implements RouterInterface
      */
     private function paramsIsset(array $params, array $allowedParams): void
     {
-        $missingParams = array_diff($allowedParams, array_keys($params));
-
-        if (!empty($missingParams))
+        foreach ($allowedParams as $key => $required)
         {
-            throw new InvalidRoute(6, "Missing [" . implode(", ", $missingParams) . "] params.");
-        }
+            $hasParam = array_key_exists($key, $params);
+            $value = $hasParam ? $params[$key] : null;
 
-        foreach ($allowedParams as $key)
-        {
-            if (is_string($params[$key]) && trim($params[$key]) === '')
+            // 1. Якщо параметра немає, але він required → помилка
+            if (!$hasParam && $required)
+            {
+                throw new InvalidRoute(6, "Missing required param `$key`.");
+            }
+
+            // 2. Якщо параметра немає, але він optional → ОК
+            if (!$hasParam && !$required)
+            {
+                continue;
+            }
+
+            // 3. Якщо параметр є, але він пустий ('' або null), і він required → помилка
+            if (($value === '' || $value === null) && $required)
             {
                 throw new InvalidRoute(7, "Param `$key` can't be empty.");
             }
 
-            if ($params[$key] === null)
-            {
-                throw new InvalidRoute(7, "Param `$key` can't be null.");
-            }
+            // 4. Якщо параметр є, але він пустий, і він optional → ОК
+            // нічого робити не треба
         }
     }
 
-    public function createObject(string $objectName, string $className): RouterObjectInterface
+    private function classIsset(string $class): bool
     {
-        // TODO: Implement createObject() method.
-        $config = new RouterObject($objectName, $className, $this);
-        $this->test[$objectName] = $config;
-        return $config;
+        return class_exists($class);
+    }
+
+    private function methodClassIsset(string $class, string $method): bool
+    {
+        return method_exists($class, $method);
     }
 }
