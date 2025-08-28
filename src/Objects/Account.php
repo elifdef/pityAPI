@@ -3,54 +3,43 @@
 namespace API\Objects;
 
 use API\Exception\AuthError;
-use API\Exception\InvalidRoute;
 use API\Services\AuthService;
 
 class Account
 {
     /**
-     * @throws InvalidRoute
      * @throws AuthError
      */
-    public static function signUp(): array
+    public static function signUp(array $params): array
     {
-        global $request;
-        $json = $request->getPOSTObject();
+        $email = $params['email'];
+        $username = $params['username'];
+        $password = $params['password'];
+        $confirm_password = $params['confirm_password'];
 
-        $email = $json->email;
-        $username = $json->username;
-        $password = $json->password;
-        $confirm_password = $json->confirm_password;
-
-        return (new AuthService)->signUp($email, $username, $password, $confirm_password);
-    }
-
-
-    /**
-     * @throws AuthError
-     * @throws InvalidRoute
-     */
-    public static function signIn(): array
-    {
-        global $request;
-        $json = $request->getPOSTObject();
-
-        $email = $json->email;
-        $password = $json->password;
-
-        return (new AuthService)->signIn($email, $password);
+        $result = (new AuthService)->signUp($email, $username, $password, $confirm_password);
+        $message = $result ? "Registration successfully." : "Error registration.";
+        return [json_encode(['status' => $result, 'message' => $message]), 201];
     }
 
     /**
      * @throws AuthError
      */
-    public static function getProfileInfo(): array
+    public static function signIn(array $params): array
     {
+        $email = $params['email'];
+        $password = $params['password'];
 
-        global $request;
-        $username = $request->getGET()['username'];
+        $token = (new AuthService)->signIn($email, $password);
+        return [json_encode(['status' => true, 'token' => $token]), 200];
+    }
 
-        $user = (new AuthService)->getUserInfo($username);
+    /**
+     * @throws AuthError
+     */
+    public static function getProfileInfo(array $params): array
+    {
+        $user = (new AuthService)->getUserInfo($params['username']);
         return [json_encode($user), 200];
     }
 }

@@ -3,7 +3,7 @@
 header('Content-Type: application/json; charset=utf-8');
 
 use API\HTTP\Request;
-use API\Router\Router;
+use API\Router\Router as Router;
 
 require_once 'vendor/autoload.php';
 

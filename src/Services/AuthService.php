@@ -11,32 +11,19 @@ class AuthService extends AccountRepository
     /**
      * @throws AuthError
      */
-    public function signUp(string $email, string $username, string $password, string $confirm_password): array
+    public function signUp(string $email, string $username, string $password, string $confirm_password): bool
     {
-        $signUp = new SignUp();
-        $result = $signUp->signUp($email, $username, $password, $confirm_password);
-        $message = $result ? "Registration successfully." : "Error registration.";
-        return [json_encode(
-            [
-                'status' => $result,
-                'message' => $message
-            ]
-        ), 201];
+        return (new SignUp())->signUp($email, $username, $password, $confirm_password);
     }
 
     /**
      * @throws AuthError
      */
-    public function signIn($email, $password): array
+    public function signIn($email, $password): string
     {
         if (!$this->checkPassword($email, $password))
             throw new AuthError(19);
-        return [json_encode(
-            [
-                'status' => true,
-                'token' => $this->createSession($this->getUserIDByEmail($email))
-            ]
-        ), 200];
+        return $this->createSession($this->getUserIDByEmail($email));
     }
 
     /**
