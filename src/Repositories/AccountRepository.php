@@ -43,7 +43,7 @@ class AccountRepository extends DB
     /**
      * @throws AuthError
      */
-    protected function checkPassword(string $email, string $password): bool
+    public function checkPassword(string $email, string $password): bool
     {
         $valid_password = $this->con->prepare("SELECT `password` FROM `users` WHERE `email` = :email");
         $valid_password->bindParam(':email', $email);
@@ -53,7 +53,7 @@ class AccountRepository extends DB
         return password_verify($password, $passwordDB);
     }
 
-    protected function createSession(int $userID): string
+    public function createSession(int $userID): string
     {
         global $request;
         $sessionToken = bin2hex(random_bytes(LENGTH_USER_SESSION_TOKEN));
@@ -84,7 +84,7 @@ class AccountRepository extends DB
         return empty($fetch->token) ? null : $fetch->token;
     }
 
-    protected function getUserIDByEmail(string $email): ?int
+    public function getUserIDByEmail(string $email): ?int
     {
         $getID = $this->con->prepare("SELECT `id` FROM `users` WHERE `email` = ?");
         $getID->execute([$email]);
@@ -98,6 +98,13 @@ class AccountRepository extends DB
         $getID->execute([$username]);
         $fetch = $getID->fetchObject();
         return empty($fetch->id) ? null : $fetch->id;
+    }
+
+    protected function getUserIDBySessionToken(string $token): ?string
+    {
+        $getID = $this->con->prepare("SELECT `user_id` FROM `sessions` WHERE `token` = ?");
+        $getID->execute([htmlspecialchars($token)]);
+        return $getID->fetchObject()->user_id;
     }
 
     protected function checkIP(?string $ip = null): bool
@@ -128,5 +135,32 @@ class AccountRepository extends DB
         $getPrivacy = $this->con->prepare("SELECT * FROM `privacy` WHERE `user_id` = ?");
         $getPrivacy->execute([$id]);
         return $getPrivacy->fetchObject();
+    }
+
+    protected function setUserInfoByID(int $id, array $info): int
+    {
+        $allowed = ['first_name', 'last_name', 'gender_id', 'country_id', 'birthdate'];
+        $update = [];
+
+        foreach ($info as $key => $value)
+        {
+            if (in_array($key, $allowed, true))
+            {
+                $update[$key] = $value;
+            }
+        }
+
+        if (empty($update))
+        {
+            return -1;
+        }
+
+        $set = implode(", ", array_map(fn($k) => "$k = :$k", array_keys($update)));
+        $sql = "UPDATE users SET $set WHERE id = :id";
+
+        $stmt = $this->con->prepare($sql);
+        $update['id'] = $id;
+
+        return $stmt->execute($update);
     }
 }
