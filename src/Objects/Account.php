@@ -3,6 +3,7 @@
 namespace API\Objects;
 
 use API\Exception\AuthError;
+use API\Services\AccountService;
 use API\Services\AuthService;
 
 class Account
@@ -19,7 +20,7 @@ class Account
 
         $result = (new AuthService)->signUp($email, $username, $password, $confirm_password);
         $message = $result ? "Registration successfully." : "Error registration.";
-        return [json_encode(['status' => $result, 'message' => $message]), 201];
+        return [json_encode(['status' => $result, 'message' => $message]), $result ? 201 : 406];
     }
 
     /**
@@ -39,7 +40,16 @@ class Account
      */
     public static function getProfileInfo(array $params): array
     {
-        $user = (new AuthService)->getUserInfo($params['username']);
+        $user = (new AccountService)->getUserInfo($params['username']);
         return [json_encode($user), 200];
+    }
+
+    /**
+     * @throws AuthError
+     */
+    public static function setProfileInfo(array $params): array
+    {
+        [$message, $code] = (new AccountService)->setProfileInfo($params);
+        return [json_encode($message), $code];
     }
 }

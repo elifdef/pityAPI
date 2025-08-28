@@ -138,10 +138,13 @@ class Router implements RouterInterface
      */
     private function paramsIsset(array $params, array $allowedParams): void
     {
-        foreach ($allowedParams as $key => $required)
+        foreach ($allowedParams as $key => $extra)
         {
             $hasParam = array_key_exists($key, $params);
             $value = $hasParam ? $params[$key] : null;
+            $required = $extra['required'];
+            $typeParam = $extra['type'];
+            $valueType = gettype($value);
 
             // 1. Якщо параметра немає, але він required → помилка
             if (!$hasParam && $required)
@@ -155,13 +158,19 @@ class Router implements RouterInterface
                 continue;
             }
 
-            // 3. Якщо параметр є, але він пустий ('' або null), і він required → помилка
+            // 3. Якщо тип параметра однаковий з указаним → помилка
+            if ($valueType !== $typeParam)
+            {
+                throw new InvalidRoute(8, "Param `$key` has `$typeParam` type. `$valueType` received.");
+            }
+
+            // 4. Якщо параметр є, але він пустий ('' або null), і він required → помилка
             if (($value === '' || $value === null) && $required)
             {
                 throw new InvalidRoute(7, "Param `$key` can't be empty.");
             }
 
-            // 4. Якщо параметр є, але він пустий, і він optional → ОК
+            // 5. Якщо параметр є, але він пустий, і він optional → ОК
             // нічого робити не треба
         }
     }

@@ -18,14 +18,17 @@ class RouterObject implements RouterObjectInterface
 
     public function POST(string $methodName, array $params): static
     {
-        // TODO: Implement POST() method.
         return $this->add('POST', $methodName, $params);
     }
 
     public function GET(string $methodName, array $params): static
     {
-        // TODO: Implement GET() method.
         return $this->add('GET', $methodName, $params);
+    }
+
+    public function PATCH(string $methodName, array $params): static
+    {
+        return $this->add('PATCH', $methodName, $params);
     }
 
     private function add(string $requestMethod, string $methodName, array $params): static
