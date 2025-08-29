@@ -7,6 +7,7 @@ const LENGTH_USER_TOKEN = 64;
 const LENGTH_USER_SESSION_TOKEN = 32;
 const ALLOW_SIGNUP_FROM_SAME_IP = true;
 const ALLOW_SIGNUP_FROM_SAME_EMAIL = true;
+const UPLOAD_DIRECTORY = 'public/uploads';
 const CLOUDFLARE_IP_LIST = [
     '103.21.244.0/22',
     '103.22.200.0/22',

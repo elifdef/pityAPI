@@ -33,4 +33,10 @@ $router->createObject('Account', Account::class)
             'country_id' => ['type' => 'integer', 'required' => false],
             'birthdate' => ['type' => 'string', 'required' => false]
         ]
+    )
+    ->POST('setProfileAvatar',
+        [
+            'token' => ['type' => 'string', 'required' => true],
+            'avatar' => ['type' => 'array', 'required' => true, 'isFile' => true]
+        ]
     );

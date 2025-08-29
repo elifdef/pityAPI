@@ -9,7 +9,8 @@
       "API\\Services\\": "src/Services/",
       "API\\Services\\Auth\\": "src/Services/Auth/",
       "API\\Repositories\\": "src/Repositories/",
-      "API\\DB\\": "src/DB/"
+      "API\\DB\\": "src/DB/",
+      "API\\Modules\\": "src/Modules/"
     }
   },
   "require": {

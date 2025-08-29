@@ -39,8 +39,13 @@ class SignUp extends AccountRepository
         if ($this->haveSameUsername()) throw new AuthError(16);
         if (!ALLOW_SIGNUP_FROM_SAME_EMAIL && $this->haveSameEmail()) throw new AuthError(17);
         if (!ALLOW_SIGNUP_FROM_SAME_IP && $this->haveSameIP()) throw new AuthError(18);
-        return $this->createUser($this->email, $this->username, $this->password) &&
-            $this->createPrivacy($this->getUserIDByUsername($this->username));
+
+        $this->createUser($this->email, $this->username, $this->password);
+        $id = $this->getUserIDByUsername($this->username);
+        $createPrivacy = $this->createPrivacy($id);
+        $createCustomization = $this->createCustomization($id);
+
+        return $createPrivacy && $createCustomization;
     }
 
     private function minCharUsername(): bool

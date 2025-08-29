@@ -52,4 +52,10 @@ class Account
         [$message, $code] = (new AccountService)->setProfileInfo($params);
         return [json_encode($message), $code];
     }
+
+    public static function setProfileAvatar(array $params): array
+    {
+        [$message, $code] = (new AccountService)->setProfileAvatar($params);
+        return [json_encode($message), $code];
+    }
 }

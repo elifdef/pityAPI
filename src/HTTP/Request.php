@@ -7,13 +7,13 @@ use API\Exception\InvalidRoute;
 readonly class Request
 {
     public function __construct(
-        public string $post, public array $get, public array $server, public array $files)
+        public string $postJSON, public array $POST, public array $get, public array $server, public array $files)
     {
     }
 
     public static function Init(): static
     {
-        return new static(file_get_contents('php://input'), $_GET, $_SERVER, $_FILES);
+        return new static(file_get_contents('php://input'), $_POST, $_GET, $_SERVER, $_FILES);
     }
 
     public function URI(): string
@@ -97,21 +97,22 @@ readonly class Request
     /**
      * @throws InvalidRoute
      */
-    public function getPOSTObject(): object
+    public function getPOST(bool $associative = null): array|object
     {
-        return json_decode($this->post) ?? throw new InvalidRoute(5);
-    }
-
-    /**
-     * @throws InvalidRoute
-     */
-    public function getPOSTArray(): array
-    {
-        return json_decode($this->post, true) ?? throw new InvalidRoute(5);
+        if (empty($this->POST))
+        {
+            return json_decode($this->postJSON, $associative) ?? throw new InvalidRoute(5);
+        }
+        return $this->POST;
     }
 
     public function getGET(): array
     {
         return $this->get;
+    }
+
+    public function getFILES(): array
+    {
+        return $this->files;
     }
 }

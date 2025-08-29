@@ -19,6 +19,7 @@ trait ErrorCode
         6 => ['message' => 'Missing $[] params.', 'httpCode' => 405],
         7 => ['message' => 'Param `$p` can\'t be empty/null.', 'httpCode' => 405],
         8 => ['message' => 'Param `$p` has `$t1` type. `$t2` received.', 'httpCode' => 405],
+        9 => ['message' => 'Error uploading files.', 'httpCode' => 404],
 
         # Auth Error
         10 => ['message' => 'Minimum length for username is ' . MIN_CHAR_USERNAME . ' symbols.', 'httpCode' => 406],

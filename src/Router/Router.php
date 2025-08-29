@@ -99,12 +99,8 @@ class Router implements RouterInterface
         !$this->correctRequestMethod() && throw new InvalidRoute(4);
 
         // Перевірка на потрібні параметри й чи вони містять дані
-        $params = match ($this->requestMethod)
-        {
-            'POST', 'PUT', 'PATCH', 'DELETE' => $GLOBALS['request']->getPOSTArray(),
-            'GET' => $GLOBALS['request']->getGET()
-        };
         $allowed_params = $this->routes[$this->objectURI]->getAllowedParams($this->methodURI);
+        $params = [];
         $this->paramsIsset($params, $allowed_params);
 
         // Перевірка чи існує такий клас і його статичний метод
@@ -136,14 +132,27 @@ class Router implements RouterInterface
     /**
      * @throws InvalidRoute
      */
-    private function paramsIsset(array $params, array $allowedParams): void
+    private function paramsIsset(array &$params, array $allowedParams): void
     {
+        $params = match ($this->requestMethod)
+        {
+            'POST', 'PUT', 'PATCH', 'DELETE' => $GLOBALS['request']->getPOST(true),
+            'GET' => $GLOBALS['request']->getGET()
+        };
+
         foreach ($allowedParams as $key => $extra)
         {
-            $hasParam = array_key_exists($key, $params);
-            $value = $hasParam ? $params[$key] : null;
+            $isFile = isset($extra['isFile']);
             $required = $extra['required'];
             $typeParam = $extra['type'];
+
+            if ($isFile)
+            {
+                $params = array_merge($params, $GLOBALS['request']->getFILES());
+            }
+
+            $hasParam = array_key_exists($key, $params);
+            $value = $hasParam ? $params[$key] : null;
             $valueType = gettype($value);
 
             // 1. Якщо параметра немає, але він required → помилка

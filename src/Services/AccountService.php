@@ -3,6 +3,9 @@
 namespace API\Services;
 
 use API\Exception\AuthError;
+use API\Exception\FileError;
+use API\Exception\InvalidRoute;
+use API\Modules\Makima;
 use API\Repositories\AccountRepository;
 
 class AccountService extends AccountRepository
@@ -22,9 +25,12 @@ class AccountService extends AccountRepository
             [
                 "id" => $user->id,
                 "username" => $user->username,
+                "avatar" => $user->avatar,
                 "private_profile" => (boolean)$user->private_profile,
                 "private_blog" => (boolean)$user->private_blog,
                 ...!$user->private_profile ? [
+                    "username_color" => $user->username_color,
+                    "background" => $user->background,
                     "name" =>
                         [
                             "first" => $privacy->hide_name ? null : $user->first_name,
@@ -73,27 +79,59 @@ class AccountService extends AccountRepository
             throw new AuthError(20);
 
         $id = $this->getUserIDBySessionToken($info['token']);
-        $resultUpdate = $this->setUserInfoByID($id, $info);
+        $resultUpdate = $this->setUserInfo($id, $info);
 
         switch ($resultUpdate)
         {
             case -1:
-                $status = true;
+                $status = false;
                 $message = 'No fields provided to update.';
                 $code = 400;
-                break;
-            case 0:
-                $status = false;
-                $message = 'Error updating information';
-                $code = 404;
                 break;
             case 1:
                 $status = true;
                 $message = 'Information updated.';
                 $code = 202;
                 break;
+            case 0:
+            default:
+                $status = false;
+                $message = 'Error updating information';
+                $code = 404;
+                break;
         }
 
         return [['status' => $status, 'message' => $message], $code];
+    }
+
+    /**
+     * @throws AuthError
+     * @throws InvalidRoute
+     * @throws FileError
+     */
+    public function setProfileAvatar(array $params): array
+    {
+        if (!$this->checkToken($params['token']))
+            throw new AuthError(20);
+
+        $id = $this->getUserIDBySessionToken($params['token']);
+        $username = $this->getUsernameByID($id);
+
+        $makima = new Makima($params['avatar']);
+        $makima->setNewName("$username-avatar-%", true);
+//        $makima->convert(Makima::PNG); <----- implemented!
+        $makima->setUploadDirectory(UPLOAD_DIRECTORY . '/avatars');
+        if (!$makima->upload())
+            throw new FileError(9);
+        $finalPath = $makima->getFinalPath();
+        $result = $this->setUserCustomization($id, ['avatar' => $finalPath]);
+
+
+        $JSON = [
+            'status' => $result,
+            'message' => ($result ? 'Successfully' : 'error') . ' updating avatar.'];
+        $code = $result ? 200 : 400;
+
+        return [$JSON, $code];
     }
 }
